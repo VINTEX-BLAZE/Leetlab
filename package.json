@@ -1,0 +1,35 @@
+{
+  "name": "leetlab-project",
+  "version": "1.0.0",
+  "description": "It's a clone of Leetcode ",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "restart": "nodemon src/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VINTEX-BLAZE/Leetlab.git"
+  },
+  "author": "Indranil Mukherjee",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/VINTEX-BLAZE/Leetlab/issues"
+  },
+  "homepage": "https://github.com/VINTEX-BLAZE/Leetlab#readme",
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^4.21.2",
+    "express-validator": "^7.2.1",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.14.0",
+    "nodemailer": "^6.10.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10",
+    "prettier": "^3.5.3"
+  }
+}

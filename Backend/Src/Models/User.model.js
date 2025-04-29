@@ -43,6 +43,9 @@ const UserSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    accessToken: {
+      type: String,
+    },
     refreshToken: {
       type: String,
     },
@@ -63,26 +66,23 @@ const UserSchema = new mongoose.Schema(
 );
 
 // configured pre hook to hash any modified password
-UserSchema.pre(async function (next) {
-  if (!this.ismodified("password")) {
+UserSchema.pre( "save", async function (next) {
+  if (!this.isModified("password")) {
     return next();
   }
   this.password = await bcrypt.hash(this.password, 15);
   next();
 });
 
-
 UserSchema.methods.isPasswordCorrect = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
-
 
 UserSchema.methods.GenerateAccessToken = async function () {
   return JWT.sign({ id: this._id }, process.env.ACCESS_TOKEN_SECRET, {
     expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
   });
 };
-
 
 UserSchema.methods.GenerateTemporaryToken = async () => {
   // This token should be client facing
@@ -98,4 +98,5 @@ UserSchema.methods.GenerateTemporaryToken = async () => {
   return { Token, HashedTokenashedToken, TokenExpiry };
 };
 
-export const User = mongoose.model('User',UserSchema)
+const User = mongoose.model("User", UserSchema);
+export default User;

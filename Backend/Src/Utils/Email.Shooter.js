@@ -56,12 +56,12 @@ const EmailVerificationMailgenContent = (username, VerificationURL) => {
         instructions: "To get started with LeetLab, please click here:",
         button: {
           color: "#22BC66", // Optional action button color
-          text: "Confirm your account ->",
+          text: "Confirm your account",
           link: VerificationURL,
         }
       },
       outro: "Need help, or have questions? Just reply to this email, we'd love to help.",
-      signature: "Yours truly, LeetLab Team",
+      signature: "Yours truly",
     }
  }
 };

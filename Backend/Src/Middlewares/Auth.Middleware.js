@@ -1,12 +1,11 @@
 // importing required Modules
 
-import { AsyncHandler } from '../Utils/AsyncHandler.js';
+import { AsyncHandler } from "../Utils/AsyncHandler.js";
 import JWT from "jsonwebtoken";
 import { validationResult } from "express-validator";
 
 export const IfLoggedIn = AsyncHandler(async (req, res, next) => {
-  const JwtToken = req.Cookie?.Token;
-
+  const JwtToken = req.cookies?.Token;
   // Checking if token recived or not
   if (!JwtToken) {
     return res.status(400).json({
@@ -25,28 +24,28 @@ export const IfLoggedIn = AsyncHandler(async (req, res, next) => {
   }
   // After that  attach the decoded data with the req object
   req.user = Value;
+  next();
 });
-
 
 export const validate = (req, res, next) => {
   const errors = validationResult(req);
 
   // Checking if there's Any error
   if (errors.isEmpty()) {
-     return next();
+    return next();
   }
 
   // Extracting the errors
-    const ExtractedErrors = [];
+  const ExtractedErrors = [];
 
-    //  It's for Debuging perpose 
-    console.log(errors);
-    
+  //  It's for Debuging perpose
+  console.log(errors);
+
   errors.array().forEach((err) => {
     ExtractedErrors.push({ [err.path]: err.msg });
   });
-   
-  console.error('Errors : ', ExtractedErrors);
+
+  console.error("Errors : ", ExtractedErrors);
   return res.status(400).json({
     message: "Please Provide valide Credentials",
     errors: ExtractedErrors,

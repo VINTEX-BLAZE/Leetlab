@@ -49,6 +49,9 @@ const UserSchema = new mongoose.Schema(
     refreshToken: {
       type: String,
     },
+    refreshTokenExpiery: {
+      type: Date,
+    },
     isLoggedIn: {
       type: Boolean,
       default: false,

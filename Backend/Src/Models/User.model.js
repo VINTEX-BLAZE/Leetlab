@@ -49,6 +49,10 @@ const UserSchema = new mongoose.Schema(
     refreshToken: {
       type: String,
     },
+    isLoggedIn: {
+      type: Boolean,
+      default: false,
+    },
     forgotPasswordToken: {
       type: String,
     },

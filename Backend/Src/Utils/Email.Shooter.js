@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer";
 import Mailgen from "mailgen";
 
-async function semdMail(Options) {
+async function sendMail(Options) {
   const mailGenerator = new Mailgen({
     theme: "neopolitan",
     product: {
@@ -66,4 +66,25 @@ const EmailVerificationMailgenContent = (username, VerificationURL) => {
  }
 };
 
-export { semdMail, EmailVerificationMailgenContent };
+const ForgotPasswordMailgenContent = (username, VerificationURL) => {
+  return {
+    body: {
+      greeting: "Hi,",
+      name: username,
+      intro: "We got a request to reset your password",
+      action: {
+        instructions: "To reset your password, please click here:",
+        button: {
+          color: "#22BC66", // Optional action button color
+          text: "Reset your password",
+          link: VerificationURL,
+        }
+      },
+      outro: "Need help, or have questions? Just reply to this email, we'd love to help.",
+      signature: "Yours truly",
+    }
+ }
+};
+
+
+export { sendMail, EmailVerificationMailgenContent, ForgotPasswordMailgenContent };

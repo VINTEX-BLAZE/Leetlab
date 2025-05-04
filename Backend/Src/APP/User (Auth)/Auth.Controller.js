@@ -5,8 +5,11 @@ import JWT from "jsonwebtoken";
 import crypto from "crypto";
 import {
   EmailVerificationMailgenContent,
-  semdMail,
+  ForgotPasswordMailgenContent,
+  sendMail,
 } from "../../Utils/Email.Shooter.js";
+import { error } from "console";
+import bcrypt from "bcryptjs";
 
 export const RegisterUser = AsyncHandler(async (req, res) => {
   // get data from req.body
@@ -22,7 +25,7 @@ export const RegisterUser = AsyncHandler(async (req, res) => {
 
   if (existingUser) {
     return res.status(400).json({
-      message: "User Already Exists",
+      error: "User Already Exists",
       success: false,
     });
   }
@@ -36,7 +39,7 @@ export const RegisterUser = AsyncHandler(async (req, res) => {
 
   if (!NewUser) {
     return res.status(500).json({
-      message: "Internal Server Error(register Fn)",
+      error: "Internal Server Error(register Fn)",
       success: false,
     });
   }
@@ -76,7 +79,7 @@ export const RegisterUser = AsyncHandler(async (req, res) => {
   await NewUser.save();
 
   // Sending Email to Client for email Verification
-  semdMail({
+  sendMail({
     email,
     subject: "Email Verification",
     MailgenContent: EmailVerificationMailgenContent(
@@ -110,7 +113,7 @@ export const VerifyEmail = AsyncHandler(async (req, res) => {
   // Checking if the token is recived or not
   if (!EmailVerificationToken) {
     return res.status(400).json({
-      message: "Invalid Token(Not Recieved)",
+      error: "Invalid Token(Not Recieved)",
       success: false,
     });
   }
@@ -124,7 +127,7 @@ export const VerifyEmail = AsyncHandler(async (req, res) => {
   // if user not found
   if (!user) {
     return res.status(400).json({
-      message: "Invalid Token",
+      error: "Invalid Token",
       success: false,
     });
   }
@@ -153,7 +156,33 @@ export const Login = AsyncHandler(async (req, res) => {
   // send a response that user logged in successfully
   // if not then send a response that user not found
 });
-export const GetProfile = AsyncHandler(async (req, res) => {});
+export const GetProfile = AsyncHandler(async (req, res) => {
+  // Extract data from req.user
+  // check if the user exists or not
+  // if yes then send the user details
+  // if not then send a response that user not found
+
+  // extracting data from req.user
+  const { id } = req.user;
+
+  // checking if the user exists or not
+  const existingUser = await User.findById(id);
+  if (!existingUser) {
+    return res.status(404).json({
+      error: "User Not Found",
+      success: false,
+    });
+  }
+
+  return res.status(200).json({
+    messsage: "Successfully Fetched User Details",
+    User: {
+      Username: existingUser.username,
+      Fullname: existingUser.fullName,
+      Email: existingUser.email,
+    },
+  });
+});
 export const LogOut = AsyncHandler(async (req, res) => {
   // extract the user details from req.user
   // check if the user exists or not
@@ -167,7 +196,7 @@ export const LogOut = AsyncHandler(async (req, res) => {
   const existingUser = await User.findById(id);
   if (!existingUser) {
     return res.status(404).json({
-      message: "User Not Found",
+      error: "User Not Found",
       success: false,
     });
   }
@@ -187,7 +216,169 @@ export const LogOut = AsyncHandler(async (req, res) => {
     success: true,
   });
 });
-export const ForgotPasswordRequest = AsyncHandler(async (req, res) => {});
-export const ResetForgotenPassword = AsyncHandler(async (req, res) => {});
-export const ChangeCurrentPassword = AsyncHandler(async (req, res) => {});
+export const ForgotPasswordRequest = AsyncHandler(async (req, res) => {
+  // Extract the given email from req.body
+  // Check if the user exists or not
+  // if yes then send a email to the user with a link to reset his/her password
+  // if not then send a response that user not found
+
+  // Extracting email from req.body
+  const { email } = req.body;
+
+  // Checking if the user really exists or not in the database
+  const existingUser = await User.findOne({ email });
+
+  if (!existingUser) {
+    return res.status(404).json({
+      error: "User Not Found",
+      success: false,
+    });
+  }
+
+  // Creating a Token
+  const ResetPasswordToken = crypto.randomBytes(8).toString("hex");
+  existingUser.forgotPasswordToken = ResetPasswordToken;
+  existingUser.forgotPasswordExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+  // Saving to the Database
+  await existingUser.save();
+
+  // Sending Email to Client for password reset
+  await sendMail({
+    email: existingUser.email,
+    subject: "Reset your Password",
+    MailgenContent: ForgotPasswordMailgenContent(
+      existingUser.username,
+      `${process.env.BASE_URL}/users/Reset-Password/${ResetPasswordToken}`,
+    ),
+  });
+
+  console.log("Mail sended");
+
+  // Sending the response
+  return res.status(200).json({
+    message: "Password reset link sent to your email",
+    success: true,
+  });
+});
+
+export const ResetForgotenPassword = AsyncHandler(async (req, res) => {
+  // extraact the token from req.params
+  // extract the new and confirm password fields from req.body
+  // check if the user exists or not based on the given token
+  // if yes then re-write the password and set the forgotPasswordToken and forgotPasswordExpiry to undefined
+  // save the user
+  // send a response
+
+  // Extracting Data
+  const { Token } = req.params;
+  const { Newpassword, ConfirmPassword } = req.body;
+
+  // Checking if we got the token or not
+  if (!Token) {
+    return res.status(400).json({
+      error: "Token Not recieved",
+      success: false,
+    });
+  }
+
+  // checking if the two password matches each other or not
+  if (Newpassword !== ConfirmPassword) {
+    return res.status(400).json({
+      error: "PNew Password Doesn't Match , Enter New Password Again",
+      success: false,
+    });
+  }
+
+  // check if the user exists or not
+  const ExistingUser = await User.findOne({
+    forgotPasswordToken: Token,
+    forgotPasswordExpiry: { $gt: Date.now() },
+  });
+
+  if (!ExistingUser) {
+    return res.status(400).json({
+      error: "Invalid Token",
+      success: false,
+    });
+  }
+ 
+  // Check if the Old Password matches With New Password or not
+  if (await bcrypt.compare(Newpassword, ExistingUser.password)) {
+    return res.status(400).json({
+      error: "You cannot use your old password",
+      success: false,
+    });
+  }
+
+  // Re-setting the Password
+  ExistingUser.password = Newpassword;
+  ExistingUser.forgotPasswordToken = undefined;
+  ExistingUser.forgotPasswordExpiry = undefined;
+
+  // Saving to the Database
+  await ExistingUser.save();
+
+  // Sending Response
+  return res.status(200).json({
+    message: "Password Reset Successfully",
+    success: true,
+  });
+});
+export const ChangeCurrentPassword = AsyncHandler(async (req, res) => {
+  // Extract the Password fields from req.body
+  // check if newPassword and confirm password are same or not
+  // if same check if the user exists or not based on the data user id recived from req.user
+  // if yes then check if the old password is same as the new one
+  // if not then update the password and send a response
+
+  // Extracting data
+  const { OldPassword, NewPassword, ConfirmPassword } = req.body;
+  const { id } = req.user;
+
+  // Checking if newPassword and confirm password are same or not
+  if (NewPassword !== ConfirmPassword) {
+    console.log(NewPassword, ConfirmPassword);
+    
+    return res.status(400).json({
+      error: "New Password Doesn't Match , Enter New Password Again",
+      success: false,
+    });
+  }
+
+  // Checking if the user exists
+  const existingUser = await User.findById(id);
+
+  if (!existingUser) {
+    return res.status(404).json({
+      error: "User Not Found",
+      success: false,
+    });
+  }
+
+  // checking if the Old password is same as the new one or not and the provided old password is correct or not
+  if (!await bcrypt.compare(OldPassword, existingUser.password)) {
+    return res.status(400).json({
+      error: "Your old password was entered incorrectly, Please enter it again",
+      success: false,
+    });
+  }
+
+  if (await bcrypt.compare(NewPassword, existingUser.password)) {
+    return res.status(400).json({
+      error: "You cannot use your old password",
+      success: false,
+    });
+  }
+
+  // updating the password and saving the data
+  existingUser.password = NewPassword;
+  await existingUser.save();
+
+  // sending response
+  return res.status(200).json({
+    message: "Password Updated Successfully",
+    success: true,
+  });
+});
 export const RefreashAcessToken = AsyncHandler(async (req, res) => {});

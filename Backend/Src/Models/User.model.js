@@ -3,7 +3,10 @@ import JWT from "jsonwebtoken";
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-
+import problem from "./Problem.model.js";
+import Submission from "./Submission.model.js";
+import ProblemSolved from "./ProblemSolved.model.js";
+import TestCaseResult from "./TestcaseResult.model.js";
 const UserSchema = new mongoose.Schema(
   {
     avatar: {
@@ -72,8 +75,28 @@ const UserSchema = new mongoose.Schema(
   { timestamp: true },
 );
 
+// Adding the Cascade delete feature
+UserSchema.pre("remove", async function (next) {
+  try {
+    // Delete all problems created by the user
+    await problem.deletemany({ userID: this._id });
+
+    // Delete all problems solved by the user
+    await ProblemSolved.deleteMany({ userID: this._id });
+
+    // Delete all TestcaseResults for the problems solved by the user
+    await TestCaseResult.deleteMany({ userID: this._id });
+
+    // Delete all Submissions done by the user
+    await Submission.deleteMany({ userID: this._id });
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
 // configured pre hook to hash any modified password
-UserSchema.pre( "save", async function (next) {
+UserSchema.pre("save", async function (next) {
   if (!this.isModified("password")) {
     return next();
   }

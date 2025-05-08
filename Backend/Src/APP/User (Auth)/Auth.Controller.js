@@ -8,7 +8,7 @@ import {
   ForgotPasswordMailgenContent,
   sendMail,
 } from "../../Utils/Email.Shooter.js";
-import { error } from "console";
+
 import bcrypt from "bcryptjs";
 
 export const RegisterUser = AsyncHandler(async (req, res) => {
